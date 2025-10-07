@@ -1,65 +1,49 @@
-🔁 Update Application on Raspberry Pi (New Release Workflow) 
+<?xml version="1.0" encoding="UTF-8"?>
+<updateWorkflow>
+  <title>🔁 Update Application on Raspberry Pi (New Release Workflow)</title>
 
-1️⃣ Navigate to the App Directory 
+  <step number="1" title="Navigate to the App Directory">
+    <command>cd /BucStop</command>
+    <note>This is the folder where you originally cloned the repo.</note>
+  </step>
 
-cd /BucStop 
- 
+  <step number="2" title="Pull the Latest Changes from GitHub">
+    <command>git pull origin main</command>
+    <note>Replace <branch>main</branch> with your default branch name if it's different (like master or dev).
+      We're deploying from <branch>main</branch> currently but can implement a staging branch later.
+    </note>
+  </step>
 
-This is the folder where you originally cloned the repo. 
+  <step number="3" title="Rebuild the Docker Image">
+    <command>docker compose up</command>
+    <note>This will build the image with the latest code.</note>
+  </step>
 
- 
+  <step number="4" title="Restart the Container">
+    <option number="1" title="Stop and Remove the Existing Container(s)">
+      <commands>
+        <command>docker stop my-container-name</command>
+        <command>docker rm my-container-name</command>
+      </commands>
+      <note>Container names are: bucstop, api-gateway, game-tetris, game-snake, game-pong</note>
+    </option>
 
-2️⃣ Pull the Latest Changes from GitHub 
+    <option number="2" title="Run a New Container with the Updated Image">
+      <command>docker run -d --name my-container-name -p 80:80 my-app-name</command>
+      <note>Use --restart unless-stopped again if you want automatic restart. Container names are up above, and app name is BucStop.</note>
+    </option>
+  </step>
 
-git pull origin main 
- 
+  <step number="5" title="Optional: Use Tags or Versioning">
+    <commands>
+      <command>git fetch --all</command>
+      <command>git checkout tags/v1.2.3 -b release-v1.2.3</command>
+    </commands>
+    <note>Then follow the build and run steps again.</note>
+  </step>
 
-Replace main with your default branch name if it's different (like master or dev). 
+  <step number="6" title="Optional: Automate the Process">
+    <note>You can script this process or use a CI/CD pipeline (like GitHub Actions with SSH deployment) to auto-update your Raspberry Pi on each release — let me know if you’d like help setting that up.</note>
+  </step>
 
--we’re deploying from main currently but can implement a staging branch later  
-
- 
-
-3️⃣ Rebuild the Docker Image 
-
-docker compose up 
- 
-
-This will build the image with the latest code. 
-
- 
-
-4️⃣ Restart the Container 
-
-Option 1: Stop and Remove the Existing Container(s) 
-
-docker stop my-container-name  
-docker rm my-container-name  
- 
-
-Container names are: bucstop, api-gateway, game-tetris, game-snake, game-pong 
-
-Option 2: Run a New Container with the Updated Image 
-
-docker run -d --name my-container-name -p 80:80 my-app-name 
- 
-
-Use --restart unless-stopped again if you want automatic restart. 
-
-Container names are up above, and app name is BucStop 
-
-✅ Optional: Use Tags or Versioning 
-
-If you're using GitHub releases or tagging: 
-
-git fetch --all 
-git checkout tags/v1.2.3 -b release-v1.2.3 
- 
-
-Then follow the build and run steps again. 
-
- 
-
-📦 Optional: Automate the Process 
-
-You can script this process or use a CI/CD pipeline (like GitHub Actions with SSH deployment) to auto-update your Raspberry Pi on each release — let me know if you’d like help setting that up. 
+</updateWorkflow>
