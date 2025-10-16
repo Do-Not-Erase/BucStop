@@ -1,6 +1,6 @@
 🔁 Update Application on Raspberry Pi (New Release Workflow)
 1️⃣ Navigate to the App Directory
-cd /BucStop
+cd BucStop/
 
 
 This is the folder where you originally cloned the repo.
