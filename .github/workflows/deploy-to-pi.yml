@@ -17,7 +17,7 @@ jobs:
       
         run: |
             set -ex
-            docker build -t BucStop .
-            docker stop BucStop || true
-            docker rm BucStop || true
-            docker run -d --name BucStop -p 80:80 BucStop
+            docker build -t bucstop .
+            docker stop bucstop || true
+            docker rm bucstop || true
+            docker run -d --name bucstop -p 80:80 bucstop
