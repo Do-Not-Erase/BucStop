@@ -11,7 +11,6 @@ jobs:
     steps:
       - name: Run
         run: |
-            cd ~/BucStop/../../BucStop
             git pull origin main
             docker build -t BucStop .
             docker stop BucStop || true
