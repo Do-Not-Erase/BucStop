@@ -1,26 +1,31 @@
-name: Deploy to Raspberry Pi 
- 
-    on:
-      push: 
-        branches: 
-          - main # Trigger on pushes to the main branch 
- 
-    jobs: 
-      deploy: 
-        runs-on: self-hosted # Use your self-hosted runner 
-        steps: 
-          - name: Checkout code 
-            uses: actions/checkout@v4 
- 
-           - name: Connect to the Pi 
-    run: | 
-      ssh lwrog10.147.19.64 << 'EOF
- 
-  - name: Deploy to Raspberry Pi 
-    run: | 
-        cd ~BucStop/
-        git pull origin main 
-        docker compose down 
-        docker compose build --pull 
-        docker compose up  
-      EOF 
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH access
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PI_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.PI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: SSH into Raspberry Pi and deploy
+        run: |
+          ssh ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} << 'EOF'
+            cd ~/BucStop
+            if [ ! -d .git ]; then
+              git clone https://github.com/${{ github.repository }} .
+            fi
+            git pull origin main
+            docker build -t BucStop .
+            docker stop BucStop || true
+            docker rm BucStop || true
+            docker run -d --name BucStop -p 80:80 BucStop
+          EOF
