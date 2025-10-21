@@ -7,19 +7,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-
-      - name: SSH into Raspberry Pi and deploy
-        run: |
-          ssh ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} << 'EOF'
-            cd ~/BucStop
-            if [ ! -d .git ]; then
-              git clone https://github.com/${{ github.repository }} .
-            fi
+      - name: Run
+        run:
             git pull origin main
             docker build -t BucStop .
             docker stop BucStop || true
             docker rm BucStop || true
             docker run -d --name BucStop -p 80:80 BucStop
           EOF
+
