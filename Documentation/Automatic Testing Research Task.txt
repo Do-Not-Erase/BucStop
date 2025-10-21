@@ -1,0 +1,19 @@
+Automatic Testing Research Task
+October 20, 2025
+
+Purpose: The purpose of this research is to explore automated testing methods that can be used to make sure that the BucStop web application works correctly with minimal manual testing. Automated tests can help confirm that the website builds and runs as expected, and that certain features perform correctly.
+Types of Automated Testing:
+•	Unit Testing: Focuses on testing individual pieces of code
+•	Integration Testing: Verifies that multiple components do work together
+•	Smoke Testing: Makes sure that the app runs successfully (like pinging the server)
+Tools:
+xUnit – Can write and execute unit tests
+Moq – Mock dependencies like repositories
+GitHub Actions – Can automatically run tests on commits/pull requests
+Integration Testing
+What it is: It runs parts of your system together (ex. Controllers + database), tests actual HTTP requests, routing, and database I/O. 
+We can create a Docker Compose file that pings the app container and reports if it’s working.
+Creating a GitHub Action to Ping the Server
+1.	Create the workflow file. This should be a path that looks similar to this - .github/workflows/ping-test.yml
+2.	Create the YAML configuration for the file (the code that pings the server)
+3.	If the site responds, the test passes, which confirms the build is functional.
