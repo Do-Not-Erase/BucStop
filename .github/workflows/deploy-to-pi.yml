@@ -17,5 +17,3 @@ jobs:
             docker stop BucStop || true
             docker rm BucStop || true
             docker run -d --name BucStop -p 80:80 BucStop
-          EOF
-
