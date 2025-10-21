@@ -1,0 +1,124 @@
+1. Set up a Self-Hosted Runner on your Raspberry Pi: 
+
+Access your Raspberry Pi: Connect to your Raspberry Pi via SSH or directly. 
+
+Install dependencies: Ensure Git, curl, and any other necessary tools for your project are installed. 
+
+Navigate to your GitHub repository settings: In your GitHub repository, go to Settings > Actions > Runners > New self-hosted runner. 
+
+Select platform and architecture: Choose "Linux" and the correct architecture for your Raspberry Pi (ARM or ARM64).  
+
+Follow the instructions: GitHub will provide commands to download, configure, and run the runner application on your Raspberry Pi. Execute these commands in your Pi's terminal. 
+
+Start the runner: Run ./run.sh to start the runner. You may want to configure it as a service for automatic startup. 
+
+2. Create a GitHub Actions Workflow: 
+
+Create a workflow file: In your GitHub repository, create a file named .github/workflows/deploy-to-pi.yml (or similar). 
+
+Define the workflow: Populate the file with a workflow similar to this: 
+
+Code 
+
+   name: Deploy to Raspberry Pi 
+ 
+    on: 
+      push: 
+        branches: 
+          - main # Trigger on pushes to the main branch 
+ 
+    jobs: 
+      deploy: 
+        runs-on: self-hosted # Use your self-hosted runner 
+        steps: 
+          - name: Checkout code 
+            uses: actions/checkout@v4 
+ 
+          - name: Set up environment  
+            # Add steps to connect to the Pi if not already connected (Raspberry Pi deployment documentation) 
+
+ 
+ 
+ 
+          - name: Deploy application 
+            # Add commands to copy files, restart services, or run deployment scripts on your Pi 
+            # Example: Copying files 
+            # - name: Copy files to Pi 
+            #   run: rsync -avz --exclude '.git' . /path/to/your/application/on/pi/ 
+ 
+            # Example: Restarting a service 
+            # - name: Restart application service 
+            #   run: sudo systemctl restart your-application-service 
+
+3. Configure Deployment Steps: 
+
+Customize the "Deploy application" step: Replace the example commands with the specific actions required to deploy your application to the Raspberry Pi. This might involve: 
+
+Copying updated files using rsync or scp. 
+
+Building your application (if not already done in a previous step). 
+
+Restarting services on the Raspberry Pi (e.g., sudo systemctl restart your-app-service). 
+
+Running custom deployment scripts. 
+
+4. Secure Credentials (if needed): 
+
+If your deployment requires SSH keys or other sensitive information, store them as GitHub Secrets in your repository settings (Settings > Secrets and variables > Actions). Reference them in your workflow using secrets.YOUR_SECRET_NAME. 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+---For part of the script for deploying the application, we’ll be copying the Raspberry Pi manual deployment document code since that’s what’s going to be automated.  
+
+ 
+
+ 
+
+So essentially, for the script file, we’re working off of this part of the script verbatim:  
+
+name: Deploy to Raspberry Pi 
+ 
+    on: 
+      push: 
+        branches: 
+          - main # Trigger on pushes to the main branch 
+ 
+    jobs: 
+      deploy: 
+        runs-on: self-hosted # Use your self-hosted runner 
+        steps: 
+ 
+
+ 
+
+And after that the steps portion reflect the manual deployment operations, just written in the script format so they can be automated, which will probably look something like this:  
+
+steps: 
+  - name: Checkout code 
+    uses: actions/checkout@v4 
+ 
+  - name: Connect to the Pi 
+    run: | 
+      // connect to the Raspberry Pi using ssh  
+ 
+  - name: Deploy to Raspberry Pi 
+    run: | 
+        cd ~/your-project-directory 
+        git pull origin main 
+        docker compose down 
+        docker compose build --pull 
+        docker compose up  
+      EOF 
+ 
+
+ 
+
+ 
