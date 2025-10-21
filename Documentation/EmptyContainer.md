@@ -25,25 +25,30 @@ Prerequisites:
 - Docker Desktop (Windows)
 - From PowerShell or a Unix shell (WSL), in the repository root
 
-Build (optional — `docker-compose up` will build automatically):
+Build (optional — `docker compose up` will build automatically):
 
 ```powershell
 # From repo root
-docker-compose build empty-service-test
+docker compose build empty-service-test
 ```
 
-Run with docker-compose (no host port mapped):
+Run with docker compose (no host port mapped):
 
 ```powershell
-docker-compose up empty-service-test
+docker compose up empty-service-test
 ```
 
 Run and map a host port (e.g., map port 8085 to the container's 80):
 
 ```powershell
-docker-compose up -d --build empty-service-test
+docker compose up -d --build empty-service-test
 # Map port manually if you prefer using docker run
 docker run --rm -p 8085:80 --name empty-service-test_local imagename
+```
+
+Shut down with docker down
+```powershell
+docker compose down
 ```
 
 Quick way to test by mapping port via an override (recommended):
@@ -57,23 +62,23 @@ services:
       - "8085:80"
 ```
 
-2. Run `docker-compose up -d --build empty-service-test` and open http://localhost:8085
+2. Run `docker compose up -d --build empty-service-test` and open http://localhost:8085
 
 ## Verification
 
 - If you mapped a host port (8085), open http://localhost:8085 and you should see the "Empty Service Test Container" page.
-- If no host port is mapped, you can exec into the API or use `docker-compose exec` from another container on the `bucstop-network` to curl the service at `http://empty-service-test`.
+- If no host port is mapped, you can exec into the API or use `docker compose exec` from another container on the `bucstop-network` to curl the service at `http://empty-service-test`.
 
 Example (exec into API gateway container):
 
 ```powershell
 # Run this while docker-compose is up with the related services
-docker-compose exec api-gateway sh -c "apk add --no-cache curl >/dev/null 2>&1 || true; curl -sS http://empty-service-test/"
+docker compose exec api-gateway sh -c "apk add --no-cache curl >/dev/null 2>&1 || true; curl -sS http://empty-service-test/"
 ```
 
 ## Next steps / How to convert into a real microservice
 
-- Replace the `Dockerfile` with a .NET multi-stage build following the pattern in `Team-3-BucStop_Tetris/Tetris/Dockerfile` and adjust `docker-compose.yml` to expose a port and set `environment` variables.
+- Replace the `Dockerfile` with a .NET multi-stage build following the pattern in `Team-3-BucStop_Tetris/Tetris/Dockerfile` and adjust `docker compose.yml` to expose a port and set `environment` variables.
 - Add `.dockerignore` to the service folder copying from other services to speed builds and avoid copying unnecessary files.
 - Update CI and deployment scripts when you want the new service in production.
 
