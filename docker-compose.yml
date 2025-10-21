@@ -69,6 +69,16 @@ services:
     networks:
       - bucstop-network
 
+  empty-service-test:
+    build:
+      context: ./Team-3-BucStop_Test/EmptyService
+      dockerfile: Dockerfile
+    container_name: empty-service-test
+    # Intentionally not publishing ports to host to avoid conflicts.
+    # To access the page from host, map a port like "8085:80" when needed.
+    networks:
+      - bucstop-network
+
 networks:
   bucstop-network:
     driver: bridge
