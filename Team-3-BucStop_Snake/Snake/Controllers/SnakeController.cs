@@ -35,7 +35,7 @@ namespace Snake
                 Id = 1,
                 Title = "Snake",
                 //Content = "~/js/snake.js",
-                //Content = "https://localhost:1948/js/snake.js",
+                //Content = "https://10.147.19.64:1948/js/snake.js",
                 Content = gameURL, // id 1
                 Author = "Fall 2023 Semester",
                 DateAdded = "",
