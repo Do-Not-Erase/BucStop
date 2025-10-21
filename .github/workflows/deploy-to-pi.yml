@@ -6,12 +6,17 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu  
+  
     steps:
+      - name: Clone
+    
+        uses: actions/checkout@v4
+
       - name: Run
+      
         run: |
-            git pull origin main
+            set -ex
             docker build -t BucStop .
             docker stop BucStop || true
             docker rm BucStop || true
