@@ -1,0 +1,26 @@
+name: Deploy to Raspberry Pi 
+ 
+    on:
+      push: 
+        branches: 
+          - main # Trigger on pushes to the main branch 
+ 
+    jobs: 
+      deploy: 
+        runs-on: self-hosted # Use your self-hosted runner 
+        steps: 
+          - name: Checkout code 
+            uses: actions/checkout@v4 
+ 
+           - name: Connect to the Pi 
+    run: | 
+      ssh lwrog10.147.19.64 << 'EOF
+ 
+  - name: Deploy to Raspberry Pi 
+    run: | 
+        cd ~BucStop/
+        git pull origin main 
+        docker compose down 
+        docker compose build --pull 
+        docker compose up  
+      EOF 
