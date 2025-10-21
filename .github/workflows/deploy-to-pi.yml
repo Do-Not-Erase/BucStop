@@ -10,7 +10,7 @@ jobs:
     
     steps:
       - name: Run
-        run:
+        run: |
             cd ~/BucStop/
             git pull origin main
             docker build -t BucStop .
