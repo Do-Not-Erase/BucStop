@@ -11,7 +11,6 @@ jobs:
     steps:
       - name: Set up SSH access
         run: |
-          mkdir -p ~/.ssh
           echo "${{ secrets.PI_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "${{ secrets.PI_HOST }}" >> ~/.ssh/known_hosts
