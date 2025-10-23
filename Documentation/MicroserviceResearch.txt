@@ -1,12 +1,12 @@
 -Currently script for games is loaded into the "Play" view from wwwroot folder in the web app
 -GameInfo (which is the json being passed from each game microservice to the API gateway and then to the web app) contains the filepath for each games' javascript file
 -Could host the javascript file from the game microservice and then pass the URL instead of the filepath
--Example: Snake is running on https://10.147.19.64:1948 so instead of returning ~/js/snake.js, we could return https://10.147.19.64:1948/js/snake.js
+-Example: Snake is running on https://localhost:1948 so instead of returning ~/js/snake.js, we could return https://localhost:1948/js/snake.js
 -This would need to be changed across each game microservice, the API gateway, and the Web App
 
 Some Implications:
 -Might need to enable the microservices to be able to host static files
--Using 10.147.19.64 may not work in production environment
+-Using localhost may not work in production environment
 -API gateway does not seem to be functional at this point so it needs to be working first
 -Games might have some other dependencies other than just the single js file
 
@@ -19,4 +19,4 @@ Some Implications:
 
 Cors is not actively being used within the WebApp, which would go on the explain why it is unable to make certain API calls 
 
-Last semester�s microservices documentation: https://docs.google.com/document/d/1614BGhXJ8EkGg9p286xH0KazdWtSf83aGFW192Is-DI/edit?tab=t.0
+Last semester’s microservices documentation: https://docs.google.com/document/d/1614BGhXJ8EkGg9p286xH0KazdWtSf83aGFW192Is-DI/edit?tab=t.0
