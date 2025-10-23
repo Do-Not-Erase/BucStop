@@ -1,0 +1,68 @@
+Raspberry Pi Web App Deployment Steps
+
+1. ZeroTier Setup
+Download and install ZeroTier from:
+
+    https://www.zerotier.com/download/
+
+Join the ZeroTier network using the provided network ID:
+
+    sudo zerotier-cli join 68bea79acf0eb4e9
+
+Notify the network admin to accept your device into the network.
+Once accepted, connect to the Raspberry Pi via SSH:
+
+    ssh <username>@<ip address>
+
+2. System Preparation
+Updated and upgraded system packages:
+
+    sudo apt update && sudo apt upgrade -y
+    sudo dpkg --configure -a
+
+Removed package manager locks and reconfigured dpkg as needed.
+
+3. Git Installation & Configuration
+Installed Git:
+
+    sudo apt install git -y
+    git --version
+
+Generated SSH keys for GitHub authentication:
+
+    ssh-keygen -t ed25519 -C "your_email"
+    eval "$(ssh-agent -s)"
+    ssh-add ~/.ssh/id_ed25519
+
+Configured Git user details:
+
+    git config --global user.name "<username>"
+    git config --global user.email "<email>"
+
+Verified SSH connection to GitHub:
+
+    ssh -T git@github.com
+
+4. Docker Installation
+Installed Docker and related dependencies:
+
+    sudo apt install -y ca-certificates curl gnupg lsb-release
+    curl -fsSL https://get.docker.com | sh
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+Added current user to the Docker group (to run Docker without sudo):
+
+    sudo usermod -aG docker $USER
+    newgrp docker
+
+5. Repository Cloning
+Cloned the web app repository:
+
+    git clone https://github.com/Do-Not-Erase/BucStop.git
+
+
+The web app was run, but is currently in a broken state.
+All steps above were performed on a Raspberry Pi running Linux.
+SSH keys were generated and added for secure GitHub access.
+Docker was installed using the official convenience script and package manager.
+ZeroTier was used for networking, but setup commands are not shown in the provided history.
