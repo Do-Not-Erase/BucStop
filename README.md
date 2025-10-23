@@ -52,11 +52,11 @@ The application is built using a microservices architecture with the following c
    ```
 
 3. Access the application:
-   - WebApp: http://localhost:8080
-   - API Gateway: http://localhost:8081
-   - Snake: http://localhost:8082
-   - Pong: http://localhost:8083
-   - Tetris: http://localhost:8084
+   - WebApp: http://10.147.19.64:8080
+   - API Gateway: http://10.147.19.64:8081
+   - Snake: http://10.147.19.64:8082
+   - Pong: http://10.147.19.64:8083
+   - Tetris: http://10.147.19.64:8084
 
 ### Local Development Without Docker
 

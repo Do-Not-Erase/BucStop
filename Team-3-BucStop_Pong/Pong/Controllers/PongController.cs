@@ -33,7 +33,7 @@ namespace Pong
                 Id = 3,
                 Title = "Pong",
                 //Content = "~/js/pong.js",
-                //Content = "https://localhost:1941/js/pong.js",
+                //Content = "https://10.147.19.64:1941/js/pong.js",
                 Content = gameURL,
                 Author = "Fall 2023 Semester",
                 DateAdded = "",

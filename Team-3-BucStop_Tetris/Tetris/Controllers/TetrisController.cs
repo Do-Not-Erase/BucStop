@@ -36,7 +36,7 @@ namespace Tetris
                 Title = "Tetris",
                 Author = "Fall 2023 Semester",
                 //Content = "~/js/tetris.js", //changing URL now that the MS hosts game code
-                //Content = "https://localhost:2626/js/tetris.js",
+                //Content = "https://10.147.19.64:2626/js/tetris.js",
                 Content = gameURL,
                 DateAdded = "",
                 Description = "Tetris is a classic arcade puzzle game where the player has to arrange falling blocks, also known as Tetronimos, of different shapes and colors to form complete rows on the bottom of the screen. The game gets faster and harder as the player progresses, and ends when the Tetronimos reach the top of the screen.",

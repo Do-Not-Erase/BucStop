@@ -19,4 +19,4 @@ Some Implications:
 
 Cors is not actively being used within the WebApp, which would go on the explain why it is unable to make certain API calls 
 
-Last semester’s microservices documentation: https://docs.google.com/document/d/1614BGhXJ8EkGg9p286xH0KazdWtSf83aGFW192Is-DI/edit?tab=t.0
+Last semesterâ€™s microservices documentation: https://docs.google.com/document/d/1614BGhXJ8EkGg9p286xH0KazdWtSf83aGFW192Is-DI/edit?tab=t.0

@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8081:80" # Expose API Gateway on localhost:8081
+      - "8081:80" # Expose API Gateway on IP:8081
     networks:
       - bucstop-network
     environment:
@@ -41,7 +41,7 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=${env:-containersLocal}
     ports:
-      - "8082:80" # Expose Snake microservice on localhost:8082
+      - "8082:80" # Expose Snake microservice on IP:8082
     networks:
       - bucstop-network
 
@@ -53,7 +53,7 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=${env:-containersLocal}
     ports:
-      - "8083:80" # Expose Pong microservice on localhost:8083
+      - "8083:80" # Expose Pong microservice on IP:8083
     networks:
       - bucstop-network
 
@@ -65,7 +65,17 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=${env:-containersLocal}
     ports:
-      - "8084:80" # Expose Tetris microservice on localhost:8084
+      - "8084:80" # Expose Tetris microservice on IP:8084
+    networks:
+      - bucstop-network
+
+  empty-service-test:
+    build:
+      context: ./Team-3-BucStop_Test/EmptyService
+      dockerfile: Dockerfile
+    container_name: empty-service-test
+    # Intentionally not publishing ports to host to avoid conflicts.
+    # To access the page from host, map a port like "8085:80" when needed.
     networks:
       - bucstop-network
 
