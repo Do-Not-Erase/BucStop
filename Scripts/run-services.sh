@@ -59,11 +59,11 @@ start_microservice "BucStop-WebApp" "Bucstop WebApp/BucStop" 8080
 
 echo -e "\n${GREEN}All services are starting up...${NC}"
 echo -e "${YELLOW}Service endpoints:${NC}"
-echo -e "${GRAY}- BucStop WebApp: http://localhost:8080${NC}"
-echo -e "${GRAY}- API Gateway:    http://localhost:8081${NC}"
-echo -e "${GRAY}- Snake Game:     http://localhost:8082${NC}"
-echo -e "${GRAY}- Pong Game:      http://localhost:8083${NC}"
-echo -e "${GRAY}- Tetris Game:    http://localhost:8084${NC}"
+echo -e "${GRAY}- BucStop WebApp: http://10.147.19.64:8080${NC}"
+echo -e "${GRAY}- API Gateway:    http://10.147.19.64:8081${NC}"
+echo -e "${GRAY}- Snake Game:     http://10.147.19.64:8082${NC}"
+echo -e "${GRAY}- Pong Game:      http://10.147.19.64:8083${NC}"
+echo -e "${GRAY}- Tetris Game:    http://10.147.19.64:8084${NC}"
 
 echo -e "\n${YELLOW}Service logs are available in /tmp/:{NC}"
 echo -e "${GRAY}- /tmp/Snake.log${NC}"

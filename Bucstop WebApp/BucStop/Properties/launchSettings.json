@@ -3,7 +3,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:35377",
+      "applicationUrl": "http://10.147.19.64:35377",
       "sslPort": 44308
     }
   },
@@ -11,7 +11,7 @@
     "BucStop": {
       "commandName": "Project",
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7182;http://localhost:5230",
+      "applicationUrl": "https://10.147.19.64:7182;http://10.147.19.64:5230",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
