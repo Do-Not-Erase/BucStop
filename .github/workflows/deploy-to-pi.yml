@@ -18,4 +18,4 @@ jobs:
         run: |
             set -ex
             docker compose down || true
-            docker run -d --name bucstop -p 80:80 bucstop
+            docker compose up -d --build
