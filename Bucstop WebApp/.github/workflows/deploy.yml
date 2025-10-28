@@ -8,61 +8,10 @@ on:
     types:
       - closed
 
-#Runs backup first to backup all persistent data    
 #If merged = true run on server, checkout main branch
 jobs:
-  backup:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout (for workspace)
-        uses: actions/checkout@v4
-
-      - name: Create backups on server (snapshots-data, logs-data)
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASS }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            set -e
-            BACKUP_DIR="$HOME/bucstop_backups"
-            TS="$(date +%F_%H%M%S)"
-            mkdir -p "$BACKUP_DIR/$TS"
-
-            # Make backup tarballs from docker volumes
-            docker run --rm -v snapshots-data:/data -v "$BACKUP_DIR/$TS":/backup busybox \
-              sh -c 'tar czf /backup/snapshots.tar.gz -C /data .'
-
-            docker run --rm -v logs-data:/data -v "$BACKUP_DIR/$TS":/backup busybox \
-              sh -c 'tar czf /backup/logs.tar.gz -C /data .'
-
-            # optional symlink to latest
-            rm -f "$BACKUP_DIR/latest" || true
-            ln -s "$BACKUP_DIR/$TS" "$BACKUP_DIR/latest"
-
-      - name: Download backups from server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASS }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "$HOME/bucstop_backups/latest/*"
-          target: "backups"
-
-      - name: Upload backup artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: bucstop-backup-${{ github.run_id }}
-          path: backups/
-          retention-days: 30
-
   if_merged:
     if: github.event.pull_request.merged == true
-    # Wait for backups to be completed
-    needs: backup
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
