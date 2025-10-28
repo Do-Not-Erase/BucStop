@@ -68,6 +68,35 @@ REACHABILITY_ONLY=1 docker compose up --build --abort-on-container-exit --exit-c
 
 Troubleshooting
 
+Convenience wrappers
+
+If you find the full `docker compose` invocation long to type, small wrapper scripts are included in `Scripts/`:
+
+- `Scripts/run-smoke.sh` (POSIX shell):
+
+```bash
+# Run the permissive reachability smoke test (default)
+./Scripts/run-smoke.sh
+
+# Check specific endpoints (strict) via the wrapper
+ENDPOINTS="http://api-gateway:80/Gateway http://bucstop:80" ./Scripts/run-smoke.sh
+
+# Make the shell script executable if needed
+chmod +x Scripts/run-smoke.sh
+```
+
+- `Scripts/run-smoke.ps1` (PowerShell):
+
+```powershell
+# Run the permissive reachability smoke test (default)
+.\Scripts\run-smoke.ps1
+
+# Strict check with custom endpoints
+.\Scripts\run-smoke.ps1 -Endpoints "http://api-gateway:80/Gateway http://bucstop:80"
+```
+
+Both wrappers honour the same environment variables used by the smoke-test script: `REACHABILITY_ONLY`, `ENDPOINTS`, and `TIMEOUT_SECS`.
+
 - If smoke-test fails because of DNS resolution, ensure the other services are starting in the same compose project and network.
 - For extra debugging, run `docker compose logs smoke-test` or `docker compose logs <service>` to inspect startup logs.
 
