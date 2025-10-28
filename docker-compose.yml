@@ -79,6 +79,23 @@ services:
     networks:
       - bucstop-network
 
+  smoke-test:
+    image: curlimages/curl:8.1.0
+    container_name: smoke-test
+    # Start after the main services — the script will retry until services respond.
+    depends_on:
+      - bucstop
+      - api-gateway
+      - snake
+      - pong
+      - tetris
+    networks:
+      - bucstop-network
+    volumes:
+      - ./Scripts:/scripts:ro
+    entrypoint: ["sh", "/scripts/smoke-test.sh"]
+    restart: "no"
+
 networks:
   bucstop-network:
     driver: bridge
