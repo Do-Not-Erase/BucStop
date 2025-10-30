@@ -1,16 +1,16 @@
 name: Deploy Pipeline
 
 on:
-  # Original behavior: run when a PR to main is closed (i.e., merged)
+  # Still supports your original flow, but only if the PR is from the same repo.
   pull_request:
     branches: [ main ]
     types: [ closed ]
-  # Optional manual trigger for testing
+  # Handy for testing backups/deploy without a PR.
   workflow_dispatch:
 
 jobs:
   backup:
-    # Run if: manual dispatch OR merged PR from the same repo (secrets available)
+    # Run if: (1) manual dispatch, OR (2) PR merged AND not from a fork
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
@@ -21,19 +21,22 @@ jobs:
       - name: Checkout (for workspace)
         uses: actions/checkout@v4
 
-      - name: Assert required SSH secrets exist
+      - name: Assert required secrets exist (no values printed)
         run: |
-          test -n "${{ secrets.PI_HOST }}"    || { echo "Missing secret: PI_HOST"; exit 1; }
-          test -n "${{ secrets.PI_USER }}"    || { echo "Missing secret: PI_USER"; exit 1; }
-          test -n "${{ secrets.PI_SSH_KEY }}" || { echo "Missing secret: PI_SSH_KEY"; exit 1; }
+          test -n "${{ secrets.SSH_HOST }}" || { echo "Missing secret: SSH_HOST"; exit 1; }
+          test -n "${{ secrets.SSH_USER }}" || { echo "Missing secret: SSH_USER"; exit 1; }
+          # Use either SSH_KEY or SSH_PASS; here we're using password as in your file
+          test -n "${{ secrets.SSH_PASS }}" || { echo "Missing secret: SSH_PASS"; exit 1; }
+          # Optional, but nice to have
+          if [ -z "${{ secrets.SSH_PORT }}" ]; then echo "Note: SSH_PORT not set, defaulting to 22"; fi
 
       - name: Create backups on server (snapshots-data, logs-data)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host:     ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key:      ${{ secrets.PI_SSH_KEY }}
-          # port:   ${{ secrets.PI_PORT }}   # optional; omit to default to 22
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASS }}
+          port:     ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           script: |
             set -euo pipefail
@@ -41,7 +44,7 @@ jobs:
             TS="$(date +%F_%H%M%S)"
             mkdir -p "$BACKUP_DIR/$TS"
 
-            # If the SSH user is not in the docker group, keep sudo; otherwise remove sudo
+            # If your user needs sudo for docker, keep sudo; otherwise remove it.
             sudo docker run --rm -v snapshots-data:/data -v "$BACKUP_DIR/$TS":/backup busybox \
               sh -c 'tar czf /backup/snapshots.tar.gz -C /data . || (echo "snapshots-data missing?"; exit 1)'
 
@@ -54,11 +57,12 @@ jobs:
       - name: Download backups from server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host:     ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key:      ${{ secrets.PI_SSH_KEY }}
-          # port:   ${{ secrets.PI_PORT }}   # optional
-          source: "~/bucstop_backups/latest/*"   # use ~ so the remote shell expands it
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASS }}
+          port:     ${{ secrets.SSH_PORT || 22 }}
+          # Use ~ instead of $HOME so the remote shell expands it
+          source: "~/bucstop_backups/latest/*"
           target: "backups"
           overwrite: true
           strip_components: 0
@@ -70,7 +74,7 @@ jobs:
           path: backups/
           retention-days: 30
 
-  deploy:
+  if_merged:
     needs: backup
     if: |
       github.event_name == 'workflow_dispatch' ||
@@ -79,13 +83,12 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: main
 
-      # If you push to Docker Hub, keep these; otherwise remove this block.
-      - name: Assert Docker Hub secrets exist
+      - name: Assert container registry secrets exist
         run: |
           test -n "${{ secrets.DOCKERHUB_USERNAME }}" || { echo "Missing secret: DOCKERHUB_USERNAME"; exit 1; }
           test -n "${{ secrets.DOCKERHUB_TOKEN }}"    || { echo "Missing secret: DOCKERHUB_TOKEN"; exit 1; }
@@ -104,16 +107,20 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/bucstop:latest
 
-      - name: Run deploy script on server
+      - name: Run Deploy script on the server
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host:     ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key:      ${{ secrets.PI_SSH_KEY }}
-          # port:   ${{ secrets.PI_PORT }}   # optional
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASS }}
+          port:     ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           script: |
             set -euo pipefail
-            cd ~/scripts   # <-- adjust if your script lives elsewhere
+            # OPTIONAL: pull latest infra repo on server if that's how you store scripts
+            # cd /opt/bucstop && git pull --rebase
+
+            # Use the actual absolute path of your script on the server:
+            cd /home/${USER}/scripts
             chmod +x ./redeployBucstop.sh
             ./redeployBucstop.sh
