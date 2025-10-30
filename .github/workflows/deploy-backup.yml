@@ -1,56 +1,71 @@
 name: Deploy Pipeline
 
-#On pull from main branch and request is closed
 on:
+  # Still supports your original flow, but only if the PR is from the same repo.
   pull_request:
-    branches:
-      - main
-    types:
-      - closed
+    branches: [ main ]
+    types: [ closed ]
+  # Handy for testing backups/deploy without a PR.
+  workflow_dispatch:
 
-#Runs backup first to backup all persistent data    
-#If merged = true run on server, checkout main branch
 jobs:
   backup:
-    if: github.event.pull_request.merged == true
+    # Run if: (1) manual dispatch, OR (2) PR merged AND not from a fork
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.merged == true &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (for workspace)
         uses: actions/checkout@v4
 
+      - name: Assert required secrets exist (no values printed)
+        run: |
+          test -n "${{ secrets.SSH_HOST }}" || { echo "Missing secret: SSH_HOST"; exit 1; }
+          test -n "${{ secrets.SSH_USER }}" || { echo "Missing secret: SSH_USER"; exit 1; }
+          # Use either SSH_KEY or SSH_PASS; here we're using password as in your file
+          test -n "${{ secrets.SSH_PASS }}" || { echo "Missing secret: SSH_PASS"; exit 1; }
+          # Optional, but nice to have
+          if [ -z "${{ secrets.SSH_PORT }}" ]; then echo "Note: SSH_PORT not set, defaulting to 22"; fi
+
       - name: Create backups on server (snapshots-data, logs-data)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host:     ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASS }}
-          port: ${{ secrets.SSH_PORT }}
+          port:     ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
           script: |
-            set -e
+            set -euo pipefail
             BACKUP_DIR="$HOME/bucstop_backups"
             TS="$(date +%F_%H%M%S)"
             mkdir -p "$BACKUP_DIR/$TS"
 
-            # Make backup tarballs from docker volumes
-            docker run --rm -v snapshots-data:/data -v "$BACKUP_DIR/$TS":/backup busybox \
-              sh -c 'tar czf /backup/snapshots.tar.gz -C /data .'
+            # If your user needs sudo for docker, keep sudo; otherwise remove it.
+            sudo docker run --rm -v snapshots-data:/data -v "$BACKUP_DIR/$TS":/backup busybox \
+              sh -c 'tar czf /backup/snapshots.tar.gz -C /data . || (echo "snapshots-data missing?"; exit 1)'
 
-            docker run --rm -v logs-data:/data -v "$BACKUP_DIR/$TS":/backup busybox \
-              sh -c 'tar czf /backup/logs.tar.gz -C /data .'
+            sudo docker run --rm -v logs-data:/data -v "$BACKUP_DIR/$TS":/backup busybox \
+              sh -c 'tar czf /backup/logs.tar.gz -C /data . || (echo "logs-data missing?"; exit 1)'
 
-            # optional symlink to latest
-            rm -f "$BACKUP_DIR/latest" || true
-            ln -s "$BACKUP_DIR/$TS" "$BACKUP_DIR/latest"
+            ln -sfn "$BACKUP_DIR/$TS" "$BACKUP_DIR/latest"
+            echo "Backup complete at $BACKUP_DIR/$TS"
 
       - name: Download backups from server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host:     ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASS }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "$HOME/bucstop_backups/latest/*"
+          port:     ${{ secrets.SSH_PORT || 22 }}
+          # Use ~ instead of $HOME so the remote shell expands it
+          source: "~/bucstop_backups/latest/*"
           target: "backups"
+          overwrite: true
+          strip_components: 0
 
       - name: Upload backup artifacts
         uses: actions/upload-artifact@v4
@@ -60,9 +75,12 @@ jobs:
           retention-days: 30
 
   if_merged:
-    if: github.event.pull_request.merged == true
-    # Wait for backups to be completed
     needs: backup
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.merged == true &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -70,14 +88,17 @@ jobs:
         with:
           ref: main
 
-        #Log into docker hub with username and password 
+      - name: Assert container registry secrets exist
+        run: |
+          test -n "${{ secrets.DOCKERHUB_USERNAME }}" || { echo "Missing secret: DOCKERHUB_USERNAME"; exit 1; }
+          test -n "${{ secrets.DOCKERHUB_TOKEN }}"    || { echo "Missing secret: DOCKERHUB_TOKEN"; exit 1; }
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-        #Build and push the docker file with latest
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -86,14 +107,20 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/bucstop:latest
 
-        #Run deployment script(see deployment document)
       - name: Run Deploy script on the server
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host:     ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASS }}
-          port: ${{ secrets.SSH_PORT }}
+          port:     ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
           script: |
-            cd scripts
+            set -euo pipefail
+            # OPTIONAL: pull latest infra repo on server if that's how you store scripts
+            # cd /opt/bucstop && git pull --rebase
+
+            # Use the actual absolute path of your script on the server:
+            cd /home/${USER}/scripts
+            chmod +x ./redeployBucstop.sh
             ./redeployBucstop.sh
