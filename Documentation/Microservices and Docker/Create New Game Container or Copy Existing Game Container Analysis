@@ -1,0 +1,23 @@
+The point of this document to analyze the best way to create a docker container for our game. We can either make one from scratch or we can copy an existing games format and switch out the duplicate game content for our own game. There are Pros and Cons to both methods.
+
+If we were to create a new container from scratch, we would be hitting quite a few learning objectives, and we could practice agile creation. Some specific benefits include,  
+    *Practice Docker container creation and manipulation
+    *Deeper understanding of the MVP of the course (Creation and Implementation of a Microservice)
+    *Experience full extent of SDLC for our game creation. (Game content and framework)
+    *Can create a set framework for future game creation (Design Pattern)
+    *Can look at weaknesses in creation to potentially insert security (DevSecOps)
+
+Cons of creation
+    *Unknown amount of time for full creation
+
+If we were to copy an existing container and switch out the game content, we would still be hitting objectives
+    *Potentially set up a standard for game containers, which would further the goal of automatic game creation (Design Pattern?)
+    *In theory, faster set up of the game. We only have to worry about the creation of the game, not the container.
+    *Still get a deeper understanding of the MVP of the course (Microservices)
+    *Practice using Docker by fixing bugs
+
+Cons of copying an existing container
+    *Lack of understanding of all the parts of the project (Creation takes you through everything, copying skips the understanding)
+    *Unknown amount of time spent fixing bugs and renaming variables. No way to estimate time to fix
+
+After analysis, I believe we should move forward with a new Docker container. There are less unknowns and I believe we will be able to connect our work with the MVP of the course.
