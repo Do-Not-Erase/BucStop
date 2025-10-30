@@ -1,0 +1,65 @@
+How to Set Up Static Code Analyzer within GitHub
+
+Static code analysis (SCA) checks your source code for issues without running it. It’s used to:
+* Detect security flaws and logic errors early
+* Enforce coding standards and best practices
+* Improve maintainability and reduce technical debt
+Set Up CodeQL in GitHub
+Step 1: Enable GitHub Actions
+Go to your repository:
+Settings ? Actions ? General ? Allow all actions and reusable workflows
+Make sure Actions are enabled.
+Step 2: Add a CodeQL Workflow
+Path :  .github/workflows/static-analysis.yml :
+name: CodeQL Analysis
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  analyze:
+    name: Analyze code with CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python', 'c-cpp', 'java' ]  # adjust as needed
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Build project
+      run: |
+        echo "Build step goes here"
+        # e.g., make, npm install, mvn compile, etc.
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+Step 3: Commit and Push
+git add .github/workflows/codeql-analysis.yml
+git commit -m "Add CodeQL static analysis workflow"
+git push
+
+Step 4: Make sure it is working
+Go to:
+GitHub ? Actions tab ? CodeQL Analysis
+You should see a running or completed workflow.
+When it finishes:
+* Visit Security ? Code scanning alerts
+* You’ll see detailed findings (security issues, code smells, etc.)
+
