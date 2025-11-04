@@ -2,7 +2,7 @@ name: Deploy to Raspberry Pi
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "F_TestingScript" ]
 
 jobs:
   deploy:
@@ -12,10 +12,22 @@ jobs:
       - name: Clone
     
         uses: actions/checkout@v4
+          
+      # Smoke test step to verify services are reachable
+      - name: Make smoke wrapper executable
+        run: chmod +x Scripts/run-smoke.sh
 
-      - name: Run
-      
+      - name: Run smoke test via wrapper (reachability-only)
+        env:
+          REACHABILITY_ONLY: "1"
+          TIMEOUT_SECS: "120"
         run: |
-            set -ex
-            docker compose down || true
-            docker compose up -d --build
+          set -e 
+          ./Scripts/run-smoke.sh
+      # End of Smoke test step
+
+      - name: Build and start stack
+        run: |
+          set -ex
+          docker compose down || true
+          docker compose up -d --build
