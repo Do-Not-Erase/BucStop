@@ -17,6 +17,10 @@ jobs:
       - name: Make smoke wrapper executable
         run: chmod +x Scripts/run-smoke.sh
 
+      # Initial build to ensure new commit is being tested.
+      - name: Build images for smoke test
+        run: docker compose build
+
       - name: Run smoke test via wrapper (reachability-only)
         env:
           REACHABILITY_ONLY: "1"
