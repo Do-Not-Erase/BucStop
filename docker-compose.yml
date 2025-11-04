@@ -71,7 +71,7 @@ services:
 
   buc-e-mon:
     build:
-      context: ./Team-3-BucStop_Buc-e-Mon/Team-3-BucStop_Buc-e-Mon
+      context: ./Team-3-BucStop_Buc-e-Mon/Team-3-BucStop_Buc-e-Mon/Team-3-BucStop_Buc-e-Mon
       dockerfile: Dockerfile
     container_name: buc-e-mon
     environment:
