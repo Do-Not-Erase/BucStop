@@ -1,9 +1,9 @@
 name: Remote Backup (IPv6)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:          # run manually from Actions tab
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "0 8 * * *"       # daily at 08:00 UTC (optional)
 
 jobs:
   backup:
@@ -15,7 +15,7 @@ jobs:
       LOG_DIR: "/var/lib/bucstop/logs-data"
 
     steps:
-      - name: Validate secrets exist
+      - name: Validate required secrets exist
         run: |
           set -eu
           [ -n "${{ secrets.PI_HOST }}" ] || { echo "Missing secret: PI_HOST"; exit 1; }
@@ -23,15 +23,36 @@ jobs:
           [ -n "${{ secrets.PI_SSH_KEY }}" ] || { echo "Missing secret: PI_SSH_KEY"; exit 1; }
           echo "Secrets present."
 
+      - name: Validate PI_HOST shape (must be raw IPv6, no brackets/quotes)
+        run: |
+          set -eu
+          if [[ "${{ secrets.PI_HOST }}" == *"["* || "${{ secrets.PI_HOST }}" == *"]"* || "${{ secrets.PI_HOST }}" == *"\""* ]]; then
+            echo "PI_HOST must be RAW IPv6 with no [ ] or quotes. Edit the secret."; exit 1;
+          fi
+          echo "PI_HOST shape looks good."
+
+      # Sanitize PI_HOST (strip any accidental [ ] or ") and wrap with brackets
+      - name: Set sanitized IPv6 host
+        id: host
+        run: |
+          RAW="${{ secrets.PI_HOST }}"
+          CLEAN="${RAW//'['/}"
+          CLEAN="${CLEAN//']'/}"
+          CLEAN="${CLEAN//\"/}"
+          echo "host=[${CLEAN}]" >> "$GITHUB_OUTPUT"
+
       - name: Sanity ping (IPv6)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PI_HOST }}
+          host: ${{ steps.host.outputs.host }}          # e.g., [2600:...]
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           port: 22
           script_stop: true
           command_timeout: 5m
+          debug: true
+          # If you later add a host fingerprint secret, uncomment the next line:
+          # host_fingerprint: ${{ secrets.PI_HOST_FINGERPRINT }}
           script: |
             set -Eeuo pipefail
             echo "Connected to $(hostname) as $(whoami)"
@@ -41,27 +62,38 @@ jobs:
       - name: Run remote backup (tar + prune)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PI_HOST }}
+          host: ${{ steps.host.outputs.host }}          # sanitized + bracketed
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           port: 22
           script_stop: true
           command_timeout: 60m
+          debug: true
           envs: KEEP_DAYS,REMOTE_BACKUP_DIR,SNAP_DIR,LOG_DIR
           script: |
             set -Eeuo pipefail
 
-            mkdir -p "$REMOTE_BACKUP_DIR"
-            ts="$(date +'%Y%m%d_%H%M%S')"
+            echo "KEEP_DAYS=$KEEP_DAYS"
+            echo "SNAP_DIR=$SNAP_DIR"
+            echo "LOG_DIR=$LOG_DIR"
+            echo "REMOTE_BACKUP_DIR=$REMOTE_BACKUP_DIR"
 
-            echo "Starting backup..."
+            # Validate sources and destination
+            test -d "$SNAP_DIR"
+            test -d "$LOG_DIR"
+            mkdir -p "$REMOTE_BACKUP_DIR"
+
+            ts="$(date +'%Y%m%d_%H%M%S')"
+            echo "Starting backup at $(date)…"
+
+            # Create compressed archives
             tar -czf "$REMOTE_BACKUP_DIR/snapshots-data_${ts}.tgz" "$SNAP_DIR"
             tar -czf "$REMOTE_BACKUP_DIR/logs-data_${ts}.tgz" "$LOG_DIR"
 
             echo "Backup files:"
             ls -lh "$REMOTE_BACKUP_DIR" | sed -n '1,200p'
 
-            echo "Pruning old backups..."
+            echo "Pruning backups older than ${KEEP_DAYS} days…"
             find "$REMOTE_BACKUP_DIR" -type f -name '*.tgz' -mtime +${KEEP_DAYS} -print -delete
 
-            echo "✅ Backup complete"
+            echo "✅ Backup finished at $(date)"
