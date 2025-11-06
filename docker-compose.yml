@@ -69,13 +69,15 @@ services:
     networks:
       - bucstop-network
 
-  empty-service-test:
+  buc-e-mon:
     build:
-      context: ./Team-3-BucStop_Test/EmptyService
+      context: ./Team-3-BucStop_Buc-e-Mon/Team-3-BucStop_Buc-e-Mon
       dockerfile: Dockerfile
-    container_name: empty-service-test
-    # Intentionally not publishing ports to host to avoid conflicts.
-    # To access the page from host, map a port like "8085:80" when needed.
+    container_name: buc-e-mon
+    environment:
+      - DOTNET_ENVIRONMENT=${env:-containersLocal}
+    ports:
+      - "8085:80" # Expose Buc-e-Mon microservice on IP:8085
     networks:
       - bucstop-network
 
