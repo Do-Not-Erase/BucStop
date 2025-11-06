@@ -1,133 +1,68 @@
-name: Backup BucStop Data
+name: Remote Backup
 
 on:
-  # Reusable by other workflows
-  workflow_call:
-    inputs:
-      keep_days:
-        description: "How many days to retain backups on the Pi"
-        required: false
-        type: number
-        default: 14
-  # Also runnable by hand from the Actions tab
-  workflow_dispatch:
-    inputs:
-      keep_days:
-        description: "How many days to retain backups on the Pi"
-        required: false
-        default: "14"
-
-# Minimal token scope
-permissions:
-  contents: read
+  workflow_dispatch:     
+  schedule:
+    - cron: "0 8 * * *"     # daily at 08:00 UTC (optional)
 
 jobs:
   backup:
     runs-on: ubuntu-latest
-
     env:
-      # Remote host paths
-      REMOTE_BACKUP_DIR: ~/bucstop_backups
-      REMOTE_TMP_DIR: ~/bucstop_backup_tmp
-
-      # Container + in-container paths to back up
-      CONTAINER_NAME: bucstop
-      SNAPSHOT_PATH: /app/Snapshots
-      LOG_PATH: /app/Logs
-
-      # Keep-days works for both workflow_call and workflow_dispatch
-      KEEP_DAYS: ${{ inputs.keep_days || github.event.inputs.keep_days || 14 }}
-
+      KEEP_DAYS: "7"                         # change if you want longer retention
+      REMOTE_BACKUP_DIR: "/opt/bucstop/backups"
+      SNAP_DIR: "/var/lib/bucstop/snapshots-data"
+      LOG_DIR: "/var/lib/bucstop/logs-data"
     steps:
-      - name: Checkout (metadata only)
+      - name: Checkout (optional)
         uses: actions/checkout@v4
 
-      - name: Create backup on Pi (copy out of container, archive, rotate)
+      - name: Sanity ping (shows we can reach the host)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          port: ${{ secrets.PI_PORT || '22' }}
-          script: |
-            set -euo pipefail
+            host: ${{ secrets.BUCSTOP_HOST }}
+            username: ${{ secrets.BUCSTOP_USER }}
+            key: ${{ secrets.BUCSTOP_SSH_KEY }}          # your private key (PEM)
+            port: ${{ secrets.BUCSTOP_SSH_PORT || 22 }}
+            script_stop: true
+            command_timeout: 10m
+            # Uncomment next line if host key issues appear (see section 2)
+            # proxy_use_insecure_cipher: true
+            script: |
+              set -Eeuo pipefail
+              echo "Connected to $(hostname) as $(whoami)"; date
 
-            echo "==> Preparing dirs"
-            mkdir -p "${REMOTE_BACKUP_DIR}"
-            rm -rf "${REMOTE_TMP_DIR}"
-            mkdir -p "${REMOTE_TMP_DIR}"
-
-            echo "==> Locating container by name match: ${CONTAINER_NAME}"
-            CID=$(docker ps --filter "name=${CONTAINER_NAME}" --format "{{.ID}}" | head -n1)
-            if [ -z "${CID}" ]; then
-              echo "ERROR: Could not find a running container matching '${CONTAINER_NAME}'"
-              docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}"
-              exit 1
-            fi
-            echo "Container ID: ${CID}"
-
-            TS=$(date -u +"%Y%m%dT%H%M%SZ")
-            PKG_BASE="bucstop_${TS}"
-            PKG_DIR="${REMOTE_TMP_DIR}/${PKG_BASE}"
-
-            echo "==> Copying data from container to host tmp"
-            mkdir -p "${PKG_DIR}"
-
-            # Snapshots (required)
-            if docker exec "${CID}" test -d "${SNAPSHOT_PATH}"; then
-              docker cp "${CID}:${SNAPSHOT_PATH}" "${PKG_DIR}/Snapshots"
-            else
-              echo "ERROR: ${SNAPSHOT_PATH} not found in container"; exit 2
-            fi
-
-            # Logs (optional)
-            if docker exec "${CID}" test -d "${LOG_PATH}"; then
-              docker cp "${CID}:${LOG_PATH}" "${PKG_DIR}/Logs"
-            else
-              echo "NOTE: ${LOG_PATH} not found; skipping Logs copy"
-            fi
-
-            echo "==> Archiving"
-            tar -C "${REMOTE_TMP_DIR}" -czf "${REMOTE_BACKUP_DIR}/${PKG_BASE}.tar.gz" "${PKG_BASE}"
-            rm -rf "${REMOTE_TMP_DIR}"
-
-            echo "==> Current backups:"
-            ls -lh "${REMOTE_BACKUP_DIR}" || true
-
-            echo "==> Retention: keep ${KEEP_DAYS} day(s)"
-            find "${REMOTE_BACKUP_DIR}" -type f -name "bucstop_*.tar.gz" -mtime +${KEEP_DAYS} -print -delete || true
-
-      - name: Discover latest backup filename on Pi
-        id: latest
+      - name: Run remote backup
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          port: ${{ secrets.PI_PORT || '22' }}
+          host: ${{ secrets.BUCSTOP_HOST }}
+          username: ${{ secrets.BUCSTOP_USER }}
+          key: ${{ secrets.BUCSTOP_SSH_KEY }}
+          port: ${{ secrets.BUCSTOP_SSH_PORT || 22 }}
           script_stop: true
+          command_timeout: 60m
+          envs: KEEP_DAYS,REMOTE_BACKUP_DIR,SNAP_DIR,LOG_DIR  # pass job envs into container
           script: |
-            set -euo pipefail
-            FILE=$(ls -1t "${REMOTE_BACKUP_DIR}/bucstop_*.tar.gz" | head -n1)
-            echo "latest=${FILE}" >> "$GITHUB_OUTPUT"
-            echo "Latest backup: ${FILE}"
+            set -Eeuo pipefail
 
-      # Pull the archive into the workflow and keep as an artifact
-      - name: Download latest backup from Pi
-        if: steps.latest.outputs.latest != ''
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          port: ${{ secrets.PI_PORT || '22' }}
-          source: "${{ steps.latest.outputs.latest }}"
-          target: "./_remote_pull"
+            mkdir -p "$REMOTE_BACKUP_DIR"
+            ts="$(date +'%Y%m%d_%H%M%S')"
 
-      - name: Upload backup artifact
-        if: steps.latest.outputs.latest != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: bucstop-backup
-          path: ./_remote_pull
-          retention-days: 7
+            # verify sources exist
+            test -d "$SNAP_DIR"
+            test -d "$LOG_DIR"
+
+            echo "Backing up to $REMOTE_BACKUP_DIR (KEEP_DAYS=$KEEP_DAYS)"
+            cd /
+
+            # create tgz archives
+            tar -czf "$REMOTE_BACKUP_DIR/snapshots-data_${ts}.tgz" "$SNAP_DIR"
+            tar -czf "$REMOTE_BACKUP_DIR/logs-data_${ts}.tgz" "$LOG_DIR"
+
+            # list results
+            ls -lh "$REMOTE_BACKUP_DIR" | tail -n +1
+
+            # prune old backups
+            find "$REMOTE_BACKUP_DIR" -type f -name '*.tgz' -mtime +${KEEP_DAYS} -print -delete
+
+            echo "Backup finished ✅"
