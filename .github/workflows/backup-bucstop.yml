@@ -1,0 +1,101 @@
+name: Backup BucStop Data
+
+on:
+  workflow_call:
+    inputs:
+      keep_days:
+        description: "How many days to retain backups on the Pi"
+        required: false
+        type: number
+        default: 14
+  workflow_dispatch:
+    inputs:
+      keep_days:
+        description: "How many days to retain backups on the Pi"
+        required: false
+        default: "14"
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      REMOTE_BACKUP_DIR: ~/bucstop_backups
+      REMOTE_TMP_DIR: ~/bucstop_backup_tmp
+      CONTAINER_NAME: bucstop
+      SNAPSHOT_PATH: /app/Snapshots
+      LOG_PATH: /app/Logs
+
+    steps:
+      - name: Checkout (for metadata only)
+        uses: actions/checkout@v4
+
+      - name: Create backup on Pi
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_PORT || '22' }}
+          script: |
+            set -euo pipefail
+            mkdir -p ${REMOTE_BACKUP_DIR}
+            rm -rf ${REMOTE_TMP_DIR}
+            mkdir -p ${REMOTE_TMP_DIR}
+
+            CID=$(docker ps --filter "name=${CONTAINER_NAME}" --format "{{.ID}}" | head -n1)
+            if [ -z "$CID" ]; then
+              echo "ERROR: Could not find container matching ${CONTAINER_NAME}"
+              exit 1
+            fi
+
+            TS=$(date -u +"%Y%m%dT%H%M%SZ")
+            PKG_BASE="bucstop_${TS}"
+            PKG_DIR="${REMOTE_TMP_DIR}/${PKG_BASE}"
+
+            mkdir -p "${PKG_DIR}"
+
+            # Copy Snapshots (required)
+            docker cp "$CID:${SNAPSHOT_PATH}" "${PKG_DIR}/Snapshots"
+
+            # Copy Logs (optional)
+            if docker exec "$CID" test -d "${LOG_PATH}"; then
+              docker cp "$CID:${LOG_PATH}" "${PKG_DIR}/Logs"
+            fi
+
+            tar -C "${REMOTE_TMP_DIR}" -czf "${REMOTE_BACKUP_DIR}/${PKG_BASE}.tar.gz" "${PKG_BASE}"
+            rm -rf "${REMOTE_TMP_DIR}"
+
+            # Rotate old backups
+            find "${REMOTE_BACKUP_DIR}" -type f -name "bucstop_*.tar.gz" -mtime +${{ github.event.inputs.keep_days || inputs.keep_days }} -print -delete || true
+
+      - name: Discover latest backup filename
+        id: latest
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_PORT || '22' }}
+          script_stop: true
+          script: |
+            FILE=$(ls -1t ${REMOTE_BACKUP_DIR}/bucstop_*.tar.gz | head -n1)
+            echo "latest=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Download latest backup from Pi
+        if: steps.latest.outputs.latest != ''
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_PORT || '22' }}
+          source: "${{ steps.latest.outputs.latest }}"
+          target: "./_remote_pull"
+
+      - name: Upload backup artifact
+        if: steps.latest.outputs.latest != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: bucstop-backup
+          path: ./_remote_pull
+          retention-days: 7
