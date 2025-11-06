@@ -1,13 +1,14 @@
 name: Remote Backup (IPv6)
 
 on:
-  workflow_dispatch:          # run manually from Actions tab
+  workflow_dispatch:
   schedule:
-    - cron: "0 8 * * *"       # daily at 08:00 UTC (optional)
+    - cron: "0 8 * * *"
 
 jobs:
   backup:
     runs-on: ubuntu-latest
+
     env:
       KEEP_DAYS: "7"
       REMOTE_BACKUP_DIR: "/opt/bucstop/backups"
@@ -23,35 +24,26 @@ jobs:
           [ -n "${{ secrets.PI_SSH_KEY }}" ] || { echo "Missing secret: PI_SSH_KEY"; exit 1; }
           echo "Secrets present."
 
-      - name: Validate PI_HOST shape (must be raw IPv6, no brackets/quotes)
+      - name: Validate PI_HOST shape (raw IPv6 only)
         run: |
           set -eu
-          if [[ "${{ secrets.PI_HOST }}" == *"["* || "${{ secrets.PI_HOST }}" == *"]"* || "${{ secrets.PI_HOST }}" == *"\""* ]]; then
-            echo "PI_HOST must be RAW IPv6 with no [ ] or quotes. Edit the secret."; exit 1;
+          H='${{ secrets.PI_HOST }}'
+          if [[ "$H" == *"["* || "$H" == *"]"* || "$H" == *"\""* || "$H" == *" "* ]]; then
+            echo "PI_HOST must be raw IPv6 (no [ ], quotes, spaces, or :22). Edit the secret." ; exit 1
           fi
           echo "PI_HOST shape looks good."
-
-      # Sanitize PI_HOST (strip any accidental [ ] or ") and wrap with brackets
-      - name: Set sanitized IPv6 host
-        id: host
-        run: |
-          RAW="${{ secrets.PI_HOST }}"
-          CLEAN="${RAW//'['/}"
-          CLEAN="${CLEAN//']'/}"
-          CLEAN="${CLEAN//\"/}"
-          echo "host=[${CLEAN}]" >> "$GITHUB_OUTPUT"
 
       - name: Sanity ping (IPv6)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ steps.host.outputs.host }}          # e.g., [2600:...]
+          host: ${{ format('[{0}]', secrets.PI_HOST) }}   # ← brackets added here
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           port: 22
           script_stop: true
           command_timeout: 5m
           debug: true
-          # If you later add a host fingerprint secret, uncomment the next line:
+          # Optional: add a pinned host key once you've scanned it
           # host_fingerprint: ${{ secrets.PI_HOST_FINGERPRINT }}
           script: |
             set -Eeuo pipefail
@@ -62,7 +54,7 @@ jobs:
       - name: Run remote backup (tar + prune)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ steps.host.outputs.host }}          # sanitized + bracketed
+          host: ${{ format('[{0}]', secrets.PI_HOST) }}   # ← same bracket wrapping
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           port: 22
@@ -78,7 +70,6 @@ jobs:
             echo "LOG_DIR=$LOG_DIR"
             echo "REMOTE_BACKUP_DIR=$REMOTE_BACKUP_DIR"
 
-            # Validate sources and destination
             test -d "$SNAP_DIR"
             test -d "$LOG_DIR"
             mkdir -p "$REMOTE_BACKUP_DIR"
@@ -86,7 +77,6 @@ jobs:
             ts="$(date +'%Y%m%d_%H%M%S')"
             echo "Starting backup at $(date)…"
 
-            # Create compressed archives
             tar -czf "$REMOTE_BACKUP_DIR/snapshots-data_${ts}.tgz" "$SNAP_DIR"
             tar -czf "$REMOTE_BACKUP_DIR/logs-data_${ts}.tgz" "$LOG_DIR"
 
