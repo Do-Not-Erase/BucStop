@@ -1,39 +1,37 @@
 name: Remote Backup (IPv6)
 
 on:
-  workflow_dispatch:            # run manually
+  workflow_dispatch:
   schedule:
-    - cron: "0 8 * * *"         # daily at 08:00 UTC (optional)
+    - cron: "0 8 * * *"
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     env:
-      # Adjust these to your server paths and retention
       KEEP_DAYS: "7"
       REMOTE_BACKUP_DIR: "/opt/bucstop/backups"
       SNAP_DIR: "/var/lib/bucstop/snapshots-data"
       LOG_DIR: "/var/lib/bucstop/logs-data"
 
     steps:
-      - name: Validate required secrets
+      - name: Validate secrets exist
         run: |
           set -eu
-          [ -n "${{ secrets.BUCSTOP_HOST }}" ] || { echo "Missing secret: BUCSTOP_HOST"; exit 1; }
-          [ -n "${{ secrets.BUCSTOP_USER }}" ] || { echo "Missing secret: BUCSTOP_USER"; exit 1; }
-          [ -n "${{ secrets.BUCSTOP_SSH_KEY }}" ] || { echo "Missing secret: BUCSTOP_SSH_KEY"; exit 1; }
+          [ -n "${{ secrets.PI_HOST }}" ] || { echo "Missing secret: PI_HOST"; exit 1; }
+          [ -n "${{ secrets.PI_USER }}" ] || { echo "Missing secret: PI_USER"; exit 1; }
+          [ -n "${{ secrets.PI_SSH_KEY }}" ] || { echo "Missing secret: PI_SSH_KEY"; exit 1; }
           echo "Secrets present."
 
       - name: Sanity ping (IPv6)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.BUCSTOP_HOST }}                 # IPv6 literal is OK here
-          username: ${{ secrets.BUCSTOP_USER }}
-          key: ${{ secrets.BUCSTOP_SSH_KEY }}
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
           port: 22
           script_stop: true
           command_timeout: 5m
-          host_fingerprint: ${{ secrets.BUCSTOP_HOST_FINGERPRINT }}
           script: |
             set -Eeuo pipefail
             echo "Connected to $(hostname) as $(whoami)"
@@ -43,39 +41,27 @@ jobs:
       - name: Run remote backup (tar + prune)
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.BUCSTOP_HOST }}
-          username: ${{ secrets.BUCSTOP_USER }}
-          key: ${{ secrets.BUCSTOP_SSH_KEY }}
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
           port: 22
           script_stop: true
           command_timeout: 60m
-          host_fingerprint: ${{ secrets.BUCSTOP_HOST_FINGERPRINT }}
-          # pass job envs into the action's container so they’re available to the script
           envs: KEEP_DAYS,REMOTE_BACKUP_DIR,SNAP_DIR,LOG_DIR
           script: |
             set -Eeuo pipefail
 
-            echo "KEEP_DAYS=$KEEP_DAYS"
-            echo "SNAP_DIR=$SNAP_DIR"
-            echo "LOG_DIR=$LOG_DIR"
-            echo "REMOTE_BACKUP_DIR=$REMOTE_BACKUP_DIR"
-
-            # Ensure sources exist and destination is writable
-            test -d "$SNAP_DIR"
-            test -d "$LOG_DIR"
             mkdir -p "$REMOTE_BACKUP_DIR"
-
             ts="$(date +'%Y%m%d_%H%M%S')"
-            echo "Starting backup at $(date) …"
 
-            # Create compressed archives
+            echo "Starting backup..."
             tar -czf "$REMOTE_BACKUP_DIR/snapshots-data_${ts}.tgz" "$SNAP_DIR"
             tar -czf "$REMOTE_BACKUP_DIR/logs-data_${ts}.tgz" "$LOG_DIR"
 
-            # Show results
+            echo "Backup files:"
             ls -lh "$REMOTE_BACKUP_DIR" | sed -n '1,200p'
 
-            # Prune old backups
+            echo "Pruning old backups..."
             find "$REMOTE_BACKUP_DIR" -type f -name '*.tgz' -mtime +${KEEP_DAYS} -print -delete
 
-            echo "Backup finished ✅ at $(date)"
+            echo "✅ Backup complete"
