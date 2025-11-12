@@ -1,0 +1,77 @@
+name: Happy Path Deployment
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  happy-path:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: |
+          docker build -t buc-e-mon:latest .
+          docker tag buc-e-mon:latest buc-e-mon:${{ github.sha }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          category: 'buc-e-mon'
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          npm ci
+          npm test
+        continue-on-error: false  # fail-fast
+
+      - name: Push image to GHCR
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag buc-e-mon:latest ghcr.io/${{ github.repository_owner }}/buc-e-mon:latest
+          docker push ghcr.io/${{ github.repository_owner }}/buc-e-mon:latest
+
+      - name: Deploy to Raspberry Pi
+        run: |
+          sshpass -p "${{ secrets.SSH_PASS }}" ssh -tt -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          docker stop bucemon || true
+          docker rm bucemon || true
+          docker pull ghcr.io/${{ github.repository_owner }}/buc-e-mon:latest
+          docker run -d --name bucemon -p 80:80 ghcr.io/${{ github.repository_owner }}/buc-e-mon:latest
+          exit
+          EOF
+
+      - name: Run health check
+        run: |
+          echo "Verifying healthy deployment..."
+          curl -f http://${{ secrets.SSH_HOST }}/health
+        continue-on-error: false
+
+      - name: Mark deployment as successful
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "✅ Happy path complete: Deployment successful at $(date)" | tee happy_path.log
+          echo "${{ github.sha }}" > latest_success.txt
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add happy_path.log latest_success.txt
+          git commit -m "Mark happy path success for ${{ github.sha }}" || echo "No changes to commit"
+          git push origin HEAD:${{ github.ref }}
+
+      - name: Upload deployment logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: happy-path-logs
+          path: happy_path.log
