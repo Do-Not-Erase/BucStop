@@ -7,7 +7,7 @@ Provide a deterministic way to revert the running stack to the last known-good c
 
 ### Components (Simplified)
 1. `deployment-success.log` — one commit SHA per line. Last line = last good deployment.
-2. `Scripts/rollback.sh` — minimal script: checkout last good commit, rebuild images, restart stack.
+2. `Scripts/rollback.sh` — minimal script: checkout last good commit, rebuild images, restart stack
 
 ### How Rollback Works (Simplified)
 1. Read last line of `deployment-success.log` to get SHA.
