@@ -17,7 +17,7 @@ SLEEP_INTERVAL="${SLEEP_INTERVAL:-3}"
 # Default list of endpoints to check (container service names + port). You can
 # override by setting ENDPOINTS in the environment, e.g.:
 # ENDPOINTS="http://api-gateway:80/Gateway http://bucstop:80"
-ENDPOINTS="${ENDPOINTS:-http://bucstop:80 http://api-gateway:80 http://snake:80 http://pong:80 http://tetris:80}"
+ENDPOINTS="${ENDPOINTS:-http://10.147.19.64:8080/ http://10.147.19.64:8081/ http://10.147.19.64:8082/ http://10.147.19.64:8083/ http://10.147.19.64:8084/}"
 
 # When set to 1, any HTTP response (including 4xx/5xx) is considered a success as
 # long as the TCP connection and HTTP exchange succeeded. Default: 0
