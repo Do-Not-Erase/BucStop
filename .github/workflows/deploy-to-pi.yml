@@ -23,7 +23,7 @@ jobs:
           REACHABILITY_ONLY: "1"
           TIMEOUT_SECS: "120"
         run: |
-          ./Scripts/run-smoke.sh
+          ./Scripts/smoke-test.sh
       # End of Smoke test step
           
       - name: Deploy with Docker Compose
