@@ -13,9 +13,27 @@ jobs:
     
         uses: actions/checkout@v4
 
-      - name: Run
-      
+      - name: Start for Tests
         run: |
             set -ex
             docker compose down || true
             docker compose up -d --build
+            
+      - name: Run Smoke Tests
+        shell: pwsh
+        run: |
+          ./run-smoke.ps1
+          
+      - name: Deploy with Docker Compose
+        if: success()  
+        run: |
+          echo "Smoke test success! Skipping Deploying."
+          set -ex
+          docker compose down || true
+          docker compose up -d --build
+
+      - name: Handle smoke test failure
+        if: failure()  
+        run: |
+          echo "Smoke test failed! Skipping deployment."
+          docker compose down || true 
