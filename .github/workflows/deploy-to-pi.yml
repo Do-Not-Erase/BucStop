@@ -20,7 +20,10 @@ jobs:
 
       # Initial build to ensure new commit is being tested.
       - name: Build images for smoke test
-        run: docker compose build
+        run: | 
+           docker compose up -d
+           ./Scripts/run-smoke.sh
+           docker compose down
 
       - name: Run smoke test via wrapper (reachability-only)
         env:
