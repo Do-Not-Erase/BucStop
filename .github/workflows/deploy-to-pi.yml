@@ -22,8 +22,6 @@ jobs:
       - name: Build images for smoke test
         run: | 
            docker compose up -d
-           ./Scripts/run-smoke.sh
-           docker compose down
 
       - name: Run smoke test via wrapper (reachability-only)
         env:
@@ -37,7 +35,7 @@ jobs:
       - name: Deploy with Docker Compose
         if: success()  
         run: |
-          echo "Smoke test success! Skipping Deploying."
+          echo "Smoke test success! Deploying."
           set -ex
           docker compose down || true
           docker compose up -d --build
