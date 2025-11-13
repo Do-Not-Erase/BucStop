@@ -23,7 +23,6 @@ jobs:
           REACHABILITY_ONLY: "1"
           TIMEOUT_SECS: "120"
         run: |
-          set -e 
           ./Scripts/run-smoke.sh
       # End of Smoke test step
           
