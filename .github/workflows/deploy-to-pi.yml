@@ -13,11 +13,6 @@ jobs:
     
         uses: actions/checkout@v4
 
-      - name: Make smoke wrapper executable
-        run: chmod +x Scripts/run-smoke.sh
-
-
-
       # Initial build to ensure new commit is being tested.
       - name: Build images for smoke test
         run: | 
