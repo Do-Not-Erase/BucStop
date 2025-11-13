@@ -1,5 +1,12 @@
 ﻿@model BucStop.Models.Game
 
+@if (Model.Content.Contains("http"))
+{
+    <script>
+        window.location.href = "@Model.Content";
+    </script>
+}
+
 <!-- This is the page every game is embeded into with the js files(in wwwroot folder) -->
 <style>
     canvas {
