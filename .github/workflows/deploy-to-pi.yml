@@ -1,8 +1,13 @@
 name: Deploy to Raspberry Pi
 
+# Explicit permissions so GITHUB_TOKEN can push deployment-success.log
+permissions:
+  contents: write
+
 on:
   push:
-    branches: [ "F_AutoTestDeploy" ]
+    branches: [ "main" ] # Triggers on pushes to main + feature branch
+  workflow_dispatch: {} # Allows manual runs (pick branch in Actions UI)
 
 jobs:
   deploy:
@@ -13,10 +18,18 @@ jobs:
     
         uses: actions/checkout@v4
 
-      # Initial build to ensure new commit is being tested.
-      - name: Build images for smoke test
-        run: | 
-           docker compose up -d
+      - name: Configure git identity  # Ensure commits can be created/pushed
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+
+      - name: Build & deploy  # Build images and start/refresh stack in background
+        run: |
+          set -e
+          docker compose up -d --build --remove-orphans
+
+      - name: Ensure scripts executable  # Make helper scripts runnable (ignore if already)
+        run: chmod +x Scripts/run-smoke.sh Scripts/rollback.sh || true
 
       - name: Run smoke test via wrapper (reachability-only)
         env:
@@ -30,13 +43,26 @@ jobs:
       - name: Deploy with Docker Compose
         if: success()  
         run: |
-          echo "Smoke test success! Deploying."
-          set -ex
-          docker compose down || true
-          docker compose up -d --build
+          set -e
+          SHA=$(git rev-parse HEAD)
+          TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          LINE="$TS $SHA"
+          if [ ! -f deployment-success.log ]; then echo "Creating deployment-success.log"; fi
+          # Only append if line not already present
+          grep -Fxq "$LINE" deployment-success.log 2>/dev/null || echo "$LINE" >> deployment-success.log
+          if git diff --quiet deployment-success.log; then echo "No change to success log (timestamp+SHA already recorded)"; else
+            git add deployment-success.log
+            git commit -m "Record successful deployment $SHA at $TS" || echo "Nothing to commit"
+            git push || echo "Push skipped"; fi
 
-      - name: Handle smoke test failure
-        if: failure()  
+      - name: Upload success log artifact  # Always archive current success log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-success-log
+          path: deployment-success.log
+
+      - name: Final status  # Fail workflow if rollback occurred; succeed otherwise
         run: |
           echo "Smoke test failed! Skipping deployment."
           docker compose down || true 
