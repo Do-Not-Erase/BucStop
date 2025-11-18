@@ -80,8 +80,7 @@ services:
       - "8085:80" # Expose Buc-e-Mon microservice on IP:8085
     networks:
       - bucstop-network
-
-smoke-test:
+  smoke-test:
     image: curlimages/curl:8.1.0
     container_name: smoke-test
     # Start after the main services — the script will retry until services respond.
