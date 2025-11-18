@@ -2,64 +2,36 @@ name: Deploy to Raspberry Pi  # Workflow: build, smoke-test, rollback on failure
 
 on:
   push:
-    branches: [ "main" ]
+   branches: [ "F_AutoTestDeploy", "main" ]
 
 jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Checkout  # Get repository code at triggered commit
-        uses: actions/checkout@v4
+      - name: Clone
+      
+      # Initial build to ensure new commit is being tested.
+      - name: Build images for smoke test
+        run: | 
+           docker compose up -d
 
-      - name: Build & deploy  # Build images and start/refresh stack in background
-        run: |
-          set -e
-          docker compose up -d --build --remove-orphans
-
-      - name: Ensure scripts executable  # Make helper scripts runnable (ignore if already)
-        run: chmod +x Scripts/run-smoke.sh Scripts/rollback.sh || true
-
-      - name: Smoke test  # Post-deploy validation; permissive reachability mode for now
-        id: smoke
+      - name: Run smoke test via wrapper (reachability-only)
         env:
-          REACHABILITY_ONLY: "1"   # switch to strict endpoints later
-          TIMEOUT_SECS: "120"
-        run: |
-          set +e
-          ./Scripts/run-smoke.sh
-          CODE=$?
-          echo "Smoke test exit code: $CODE"
-          exit $CODE
-        continue-on-error: true
+          REACHABILITY_ONLY: "1"
+          run: |
+           chmod +x Scripts/smoke-test.sh
+           ./Scripts/smoke-test.sh
 
-      - name: Rollback (includes log capture) # On failure: gather logs then revert to last success
-        if: steps.smoke.outcome == 'failure'
+      - name: Deploy with Docker Compose
+        if: success()
         run: |
-          set -e
-          echo "--- Service state before rollback ---"
-          docker compose ps || true
-          echo "--- Recent logs ---"
-          docker compose logs --no-color --tail=300 || true
-          if [ ! -f deployment-success.log ]; then
-            echo "No deployment-success.log found; cannot rollback automatically." >&2
-            exit 1
-          fi
-          ./Scripts/rollback.sh
+         echo "Smoke Test success! Deploying."
+         set -ex 
+         docker compose down || true
+         docker compose up -d --build
 
-      - name: Record successful deployment  # Append commit SHA to success log and push
-        if: steps.smoke.outcome == 'success'
+      - name: Handle smoke test failure
+        if: failure()
         run: |
-          set -e
-          SHA=$(git rev-parse HEAD)
-          echo "$SHA" >> deployment-success.log
-          if git diff --quiet deployment-success.log; then echo "No change to success log"; else
-            git add deployment-success.log
-            git commit -m "Record successful deployment $SHA" || echo "Nothing to commit"
-            git push || echo "Push skipped"; fi
-
-      - name: Final status  # Fail workflow if rollback occurred; succeed otherwise
-        run: |
-          if [ "${{ steps.smoke.outcome }}" = "failure" ]; then
-            echo "Deployment rolled back due to failed smoke test."; exit 1
-          else
-            echo "Deployment succeeded and recorded."; fi
+          echo "Smoke test failed! skipping deployment"
+          docker compose down || true
