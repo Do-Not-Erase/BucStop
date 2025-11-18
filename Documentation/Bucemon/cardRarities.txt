@@ -1,0 +1,55 @@
+Option 1:
+Rarity	Percentage
+Common	50%
+Uncommon	25%
+Rare	15%
+Ultra	7%
+Omega	3%
+
+That means on any given draw, a player has:
+
+a 1 in 2 chance of getting a common
+a 1 in 4 chance of getting an uncommon
+a 1 in ~7 chance of getting a rare
+a 1 in ~14 chance of getting an ultra
+a 1 in ~33 chance of getting an omega
+
+---------------------------------------------------------------------------------------------
+
+Option 2: 12 Card Types + Rarity Distribution (Detailed Odds)
+
+First, the game randomly selects one of 12 card types
+ - Each card type has a 1 in 12 chance (~8.33%)
+
+Second, the rarity of that card is determined using this distribution:
+Rarity	Percentage
+Common	50%
+Uncommon	25%
+Rare	15%
+Ultra	7%
+Omega	3%
+
+That means on any given draw, a player has:
+
+a 1 in 2 chance of getting a common
+a 1 in 4 chance of getting an uncommon
+a 1 in ~7 chance of getting a rare
+a 1 in ~14 chance of getting an ultra
+a 1 in ~33 chance of getting an omega
+
+Odds of Getting a Specific Card at a Specific Rarity
+Because every card type has the same rarity distribution, we multiply the chance of getting that card type (1/12) by the rarity percentage.
+
+Rarity	Combined Chance (per card)
+Common	(1/12 × 50%) ≈ 4.17%
+Uncommon	(1/12 × 25%) ≈ 2.08%
+Rare	(1/12 × 15%) ≈ 1.25%
+Ultra	(1/12 × 7%) ≈ 0.58%
+Omega	(1/12 × 3%) ≈ 0.25%
+
+A specific common version of a card: ~4.17% chance
+A specific uncommon version of a card: ~2.08% chance
+A specific rare version of a card: ~1.25% chance
+A specific ultra version of a card: ~0.58% chance
+A specific omega version of a card: ~0.25% chance
+ - about 1 in 400 pulls
