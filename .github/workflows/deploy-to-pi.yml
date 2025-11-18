@@ -6,7 +6,7 @@ permissions:
 
 on:
   push:
-    branches: [ "main", "F_Rollback" ] # Triggers on pushes to main + feature branch
+    branches: [ "main" ] # Triggers on pushes to main + feature branch
   workflow_dispatch: {} # Allows manual runs (pick branch in Actions UI)
 
 jobs:
