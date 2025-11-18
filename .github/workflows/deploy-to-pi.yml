@@ -12,6 +12,11 @@ jobs:
       - name: Checkout  # Get repository code at triggered commit
         uses: actions/checkout@v4
 
+      - name: Configure git identity  # Ensure commits can be created/pushed
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+
       - name: Build & deploy  # Build images and start/refresh stack in background
         run: |
           set -e
@@ -52,11 +57,22 @@ jobs:
         run: |
           set -e
           SHA=$(git rev-parse HEAD)
-          echo "$SHA" >> deployment-success.log
-          if git diff --quiet deployment-success.log; then echo "No change to success log"; else
+          TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          LINE="$TS $SHA"
+          if [ ! -f deployment-success.log ]; then echo "Creating deployment-success.log"; fi
+          # Only append if line not already present
+          grep -Fxq "$LINE" deployment-success.log 2>/dev/null || echo "$LINE" >> deployment-success.log
+          if git diff --quiet deployment-success.log; then echo "No change to success log (timestamp+SHA already recorded)"; else
             git add deployment-success.log
-            git commit -m "Record successful deployment $SHA" || echo "Nothing to commit"
+            git commit -m "Record successful deployment $SHA at $TS" || echo "Nothing to commit"
             git push || echo "Push skipped"; fi
+
+      - name: Upload success log artifact  # Always archive current success log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-success-log
+          path: deployment-success.log
 
       - name: Final status  # Fail workflow if rollback occurred; succeed otherwise
         run: |
