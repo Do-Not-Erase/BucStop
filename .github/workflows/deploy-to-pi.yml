@@ -1,5 +1,9 @@
 name: Deploy to Raspberry Pi  # Workflow: build, smoke-test, rollback on failure, record success
 
+# Explicit permissions so GITHUB_TOKEN can push deployment-success.log
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ "main", "F_Rollback" ] # Triggers on pushes to main + feature branch
