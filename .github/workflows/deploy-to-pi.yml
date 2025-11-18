@@ -2,7 +2,7 @@ name: Deploy to Raspberry Pi  # Workflow: build, smoke-test, rollback on failure
 
 on:
   push:
-    branches: [ "main", "F_SadPathRollback" ] # Triggers on pushes to main + feature branch
+    branches: [ "main", "F_Rollback" ] # Triggers on pushes to main + feature branch
   workflow_dispatch: {} # Allows manual runs (pick branch in Actions UI)
 
 jobs:
