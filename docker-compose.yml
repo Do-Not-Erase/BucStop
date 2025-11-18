@@ -59,9 +59,9 @@ services:
 
   tetris:
     build:
-      context: ./Team-3-BucStop_Tetris/Tetris
+      context: ./Team-3-BucStop_Tetris/Tetriss
       dockerfile: Dockerfile
-    container_name: game-tetris
+    container_name: game-tetriss
     environment:
       - DOTNET_ENVIRONMENT=${env:-containersLocal}
     ports:
