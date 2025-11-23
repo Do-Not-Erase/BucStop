@@ -20,25 +20,38 @@
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+                
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
+                        <script>
+                            // Automatically detect hostname (localhost or Pi IP)
+                            const host = window.location.hostname;
+
+                            // Builds URLs
+                            const urlMain = `//${host}:8080`;
+                            const urlGame = `//${host}:8085`;  // Buc-E-Mon microservice
+                        </script>
+
+                        <!-- Home stays inside 8085 -->
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                            <a class="nav-link text-dark" href="#" onclick="location.href = urlGame">Home</a>
+                        </li>
+
+                        <!-- These go back to the main 8080 site -->
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="#" onclick="location.href = urlMain + '/Games'">Games</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark">Games</a>
+                            <a class="nav-link text-dark" href="#" onclick="location.href = urlMain + '/Snapshots'">Snapshots</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark">Snapshots</a>
+                            <a class="nav-link text-dark" href="#" onclick="location.href = urlMain + '/Home/Privacy'">About</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark">About</a>
+                            <a class="nav-link text-dark" href="#" onclick="location.href = urlMain + '/Home/Admin'">Admin</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark">Admin</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark">Add your game!</a>
+                            <a class="nav-link text-dark" href="#" onclick="location.href = urlMain + '/Home/GameCriteria'">Add Your Game!</a>
                         </li>
                     </ul>
                 </div>
