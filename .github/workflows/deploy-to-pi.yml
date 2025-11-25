@@ -22,16 +22,13 @@ jobs:
           docker compose down
           docker compose up -d --build 
 
-      - name: Ensure scripts executable  # Make helper scripts runnable (ignore if already)
-        run: chmod +x Scripts/run-smoke.sh Scripts/rollback.sh || true
-
       - name: Smoke test  # Post-deploy validation; permissive reachability mode for now
         id: smoke
         env:
           REACHABILITY_ONLY: "1"   # switch to strict endpoints later
           TIMEOUT_SECS: "120"
         run: |
-          set +e
+          chmod +x Scripts/run-smoke.sh Scripts/rollback.sh || true
           ./Scripts/smoke-test.sh
           CODE=$?
           echo "Smoke test exit code: $CODE"
