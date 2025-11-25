@@ -4,7 +4,7 @@ using Serilog;
 using Serilog.Filters;
 
 /*
- * This is the base program which starts the project.
+ * This is the base program which starts the project. 
  */
 
 var builder = WebApplication.CreateBuilder(args);
