@@ -7,6 +7,7 @@
 img {
   width: 100%;
   height: auto;
+  max-width: 1000px;
 }
 
 /*Changed nav img width to 230px from 240px. 230px width matches the rest of BucStop better*/
