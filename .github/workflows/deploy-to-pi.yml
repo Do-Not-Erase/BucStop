@@ -6,7 +6,7 @@ permissions:
 
 on:
   push:
-    branches: [ "main" ] # Triggers on pushes to main + feature branch
+    branches: [ "main", "F_AestheticChanges" ] # Triggers on pushes to main + feature branch
   workflow_dispatch: {} # Allows manual runs (pick branch in Actions UI)
 
 jobs:
@@ -16,15 +16,11 @@ jobs:
       - name: Checkout  # Get repository code at triggered commit
         uses: actions/checkout@v4
 
-      - name: Configure git identity  # Ensure commits can be created/pushed
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-
       - name: Build & deploy  # Build images and start/refresh stack in background
         run: |
           set -e
-          docker compose up -d --build --remove-orphans
+          docker compose down
+          docker compose up -d --build 
 
       - name: Ensure scripts executable  # Make helper scripts runnable (ignore if already)
         run: chmod +x Scripts/run-smoke.sh Scripts/rollback.sh || true
@@ -36,7 +32,7 @@ jobs:
           TIMEOUT_SECS: "120"
         run: |
           set +e
-          ./Scripts/run-smoke.sh
+          ./Scripts/smoke-test.sh
           CODE=$?
           echo "Smoke test exit code: $CODE"
           exit $CODE
