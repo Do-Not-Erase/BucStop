@@ -5,11 +5,15 @@
 
 /*Used to style the "Coming Soon Img"*/
 img {
-  width: 1000px;
+  width: 100%;
+  height: auto;
+  max-width: 1000px;
+  color: lightgrey;
 }
 
+/*Changed nav img width to 230px from 240px. 230px width matches the rest of BucStop better*/
 nav img {
-    width: 240px;
+    width: 230px;
 }
 
 html {
@@ -40,7 +44,7 @@ footer {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 60px;
+    height: 61px;
     align-content: center;
 }
 
